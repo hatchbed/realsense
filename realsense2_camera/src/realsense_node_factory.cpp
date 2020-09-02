@@ -8,6 +8,8 @@
 #include <iostream>
 #include <map>
 
+#include <nodelet/NodeletUnload.h>
+
 using namespace realsense2_camera;
 
 #define REALSENSE_ROS_EMBEDDED_VERSION_STR (VAR_ARG_STRING(VERSION: REALSENSE_ROS_MAJOR_VERSION.REALSENSE_ROS_MINOR_VERSION.REALSENSE_ROS_PATCH_VERSION))
@@ -72,6 +74,12 @@ rs2::device RealSenseNodeFactory::getDevice(std::string& serial_no)
 }
 
 void RealSenseNodeFactory::onInit()
+{
+    auto nh = getNodeHandle();
+    init_timer_ = nh.createWallTimer(ros::WallDuration(1.0), &RealSenseNodeFactory::initialize, this, true);
+}
+
+void RealSenseNodeFactory::initialize(const ros::WallTimerEvent &ignored)
 {
     try{
 #ifdef BPDEBUG
@@ -199,6 +207,48 @@ void RealSenseNodeFactory::onInit()
         throw;
     }
 }
+
+bool RealSenseNodeFactory::shutdown()
+{
+    nodelet::NodeletUnload srv;
+    srv.request.name = getName();
+    std::string unload_service;
+    if (ros::service::exists(unload_service, true))
+    {
+        if(ros::service::call(unload_service, srv))
+        {
+            return true;
+        }
+        else
+        {
+            ROS_ERROR("Failed to unload: %s", srv.request.name.c_str());
+        }
+    }
+    else
+    {
+        ROS_ERROR("Failed to find unload service: %s", unload_service.c_str());
+    }
+
+    return false;
+}
+
+void RealSenseNodeFactory::reset()
+{
+    _realSenseNode.reset();
+    initialize(ros::WallTimerEvent());
+}
+
+bool RealSenseNodeFactory::handleShutdown(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response)
+{
+    return shutdown();
+}
+
+bool RealSenseNodeFactory::handleReset(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response)
+{
+    reset();
+    return true;
+}
+
 
 void RealSenseNodeFactory::tryGetLogSeverity(rs2_log_severity& severity) const
 {

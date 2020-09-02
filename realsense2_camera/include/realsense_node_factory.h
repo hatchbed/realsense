@@ -25,6 +25,7 @@
 #include <csignal>
 #include <eigen3/Eigen/Geometry>
 #include <fstream>
+#include <std_srvs/Empty.h>
 
 #include <mutex>
 #include <condition_variable>
@@ -79,10 +80,19 @@ namespace realsense2_camera
     private:
         rs2::device getDevice(std::string& serial_no);
         virtual void onInit() override;
+        void initialize(const ros::WallTimerEvent &ignored);
         void tryGetLogSeverity(rs2_log_severity& severity) const;
+
+        bool handleShutdown(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response);
+        bool handleReset(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response);
+
+        bool shutdown();
+        void reset();
 
         std::unique_ptr<InterfaceRealSenseNode> _realSenseNode;
         rs2::device _device;
         rs2::context _ctx;
+
+        ros::WallTimer init_timer_;
     };
 }//end namespace

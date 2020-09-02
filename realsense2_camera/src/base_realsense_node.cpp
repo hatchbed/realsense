@@ -116,6 +116,11 @@ void BaseRealSenseNode::publishTopics()
     ROS_INFO_STREAM("RealSense Node Is Up!");
 }
 
+void BaseRealSenseNode::hardwareReset()
+{
+    _dev.hardware_reset();
+}
+
 void BaseRealSenseNode::registerDynamicReconfigCb()
 {
     ROS_INFO("Dynamic reconfig parameters is not implemented in the base node.");

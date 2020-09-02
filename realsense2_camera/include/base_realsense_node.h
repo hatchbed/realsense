@@ -69,6 +69,7 @@ namespace realsense2_camera
                           const std::string& serial_no);
 
         virtual void publishTopics() override;
+        virtual void hardwareReset();
         virtual void registerDynamicReconfigCb() override;
         virtual ~BaseRealSenseNode() {}
 
