@@ -22,7 +22,9 @@ SyncedImuPublisher::SyncedImuPublisher(ros::Publisher imu_publisher, std::size_t
 
 SyncedImuPublisher::~SyncedImuPublisher()
 {
+    ROS_ERROR("~SyncedImuPublisher()");
     PublishPendingMessages();
+    ROS_ERROR("Published Pending Messages");
 }
 
 void SyncedImuPublisher::Publish(sensor_msgs::Imu imu_msg)
