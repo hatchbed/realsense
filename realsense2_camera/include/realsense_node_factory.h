@@ -78,5 +78,7 @@ namespace realsense2_camera
         rs2::context _ctx;
         std::string _serial_no;
         bool _initial_reset;
+
+        ros::WallTimer init_timer_;
     };
 }//end namespace
