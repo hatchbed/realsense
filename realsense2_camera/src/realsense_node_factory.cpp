@@ -75,12 +75,15 @@ rs2::device RealSenseNodeFactory::getDevice(std::string& serial_no)
 
 void RealSenseNodeFactory::onInit()
 {
+    ROS_ERROR("onInit");
     auto nh = getNodeHandle();
     init_timer_ = nh.createWallTimer(ros::WallDuration(1.0), &RealSenseNodeFactory::initialize, this, true);
 }
 
 void RealSenseNodeFactory::initialize(const ros::WallTimerEvent &ignored)
 {
+    ROS_ERROR("initialize");
+
     try{
 #ifdef BPDEBUG
 		std::cout << "Attach to Process: " << getpid() << std::endl;
@@ -210,6 +213,7 @@ void RealSenseNodeFactory::initialize(const ros::WallTimerEvent &ignored)
 
 bool RealSenseNodeFactory::shutdown()
 {
+    ROS_ERROR("shutdown");
     nodelet::NodeletUnload srv;
     srv.request.name = getName();
     std::string unload_service;
@@ -234,17 +238,20 @@ bool RealSenseNodeFactory::shutdown()
 
 void RealSenseNodeFactory::reset()
 {
+    ROS_ERROR("reset");
     _realSenseNode.reset();
     initialize(ros::WallTimerEvent());
 }
 
 bool RealSenseNodeFactory::handleShutdown(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response)
 {
+    ROS_ERROR("handleShutdown");
     return shutdown();
 }
 
 bool RealSenseNodeFactory::handleReset(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response)
 {
+    ROS_ERROR("handleReset");
     reset();
     return true;
 }
