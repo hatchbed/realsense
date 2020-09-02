@@ -21,6 +21,7 @@
 #include <csignal>
 #include <eigen3/Eigen/Geometry>
 #include <fstream>
+#include <std_srvs/Empty.h>
 
 namespace realsense2_camera
 {
@@ -64,7 +65,14 @@ namespace realsense2_camera
         void change_device_callback(rs2::event_information& info);
         rs2::device getDevice();
         virtual void onInit() override;
+        void initialize(const ros::WallTimerEvent &ignored);
         void tryGetLogSeverity(rs2_log_severity& severity) const;
+
+        bool handleShutdown(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response);
+        bool handleReset(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response);
+
+        bool shutdown();
+        void reset();
 
         std::unique_ptr<InterfaceRealSenseNode> _realSenseNode;
         rs2::context _ctx;

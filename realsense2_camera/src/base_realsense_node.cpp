@@ -177,6 +177,11 @@ void BaseRealSenseNode::publishTopics()
     ROS_INFO_STREAM("RealSense Node Is Up!");
 }
 
+void BaseRealSenseNode::hardwareReset()
+{
+    _dev.hardware_reset();
+}
+
 bool is_checkbox(rs2::options sensor, rs2_option option)
 {
     rs2::option_range op_range = sensor.get_option_range(option);
