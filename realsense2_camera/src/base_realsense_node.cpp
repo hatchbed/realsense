@@ -1110,6 +1110,7 @@ void BaseRealSenseNode::ConvertFromOpticalFrameToFrame(float3& data)
 
 void BaseRealSenseNode::imu_callback_sync(rs2::frame frame, imu_sync_method sync_method)
 {
+
     static std::mutex m_mutex;
     static const stream_index_pair stream_imu = GYRO;
     static sensor_msgs::Imu imu_msg = sensor_msgs::Imu();
@@ -1127,6 +1128,9 @@ void BaseRealSenseNode::imu_callback_sync(rs2::frame frame, imu_sync_method sync
     imu_msg.angular_velocity_covariance = { _angular_velocity_cov, 0.0, 0.0, 0.0, _angular_velocity_cov, 0.0, 0.0, 0.0, _angular_velocity_cov};
 
     m_mutex.lock();
+
+    try
+    {
 
     while (true)
     {
@@ -1198,11 +1202,22 @@ void BaseRealSenseNode::imu_callback_sync(rs2::frame frame, imu_sync_method sync
         }
         break;
     }
+    }
+    catch (const rs2::wrong_api_call_sequence_error& e)
+    {
+        ROS_ERROR("imu_callback_sync caught wrong_api_call_sequence_error");
+    }
+    catch (...)
+    {
+        ROS_ERROR("imu_callback_sync caught unkown exception");
+    }
     m_mutex.unlock();
 };
 
 void BaseRealSenseNode::imu_callback(rs2::frame frame)
 {
+    try
+    {
     auto stream = frame.get_profile().stream_type();
     double frame_time = frame.get_timestamp();
     bool placeholder_false(false);
@@ -1253,10 +1268,21 @@ void BaseRealSenseNode::imu_callback(rs2::frame frame)
         _imu_publishers[stream_index].publish(imu_msg);
         ROS_DEBUG("Publish %s stream", rs2_stream_to_string(frame.get_profile().stream_type()));
     }
+    }
+    catch (const rs2::wrong_api_call_sequence_error& e)
+    {
+        ROS_ERROR("imu_callback caught wrong_api_call_sequence_error");
+    }
+    catch (...)
+    {
+        ROS_ERROR("imu_callback caught unkown exception");
+    }
 }
 
 void BaseRealSenseNode::pose_callback(rs2::frame frame)
 {
+    try
+    {
     double frame_time = frame.get_timestamp();
     bool placeholder_false(false);
     if (_is_initialized_time_base.compare_exchange_strong(placeholder_false, true) )
@@ -1345,6 +1371,16 @@ void BaseRealSenseNode::pose_callback(rs2::frame frame)
                                     0, 0, 0, 0, 0, cov_twist};
         _imu_publishers[stream_index].publish(odom_msg);
         ROS_DEBUG("Publish %s stream", rs2_stream_to_string(frame.get_profile().stream_type()));
+    }
+
+    }
+    catch (const rs2::wrong_api_call_sequence_error& e)
+    {
+        ROS_ERROR("pose_callback caught wrong_api_call_sequence_error");
+    }
+    catch (...)
+    {
+        ROS_ERROR("pose_callback caught unkown exception");
     }
 }
 
@@ -1530,6 +1566,15 @@ void BaseRealSenseNode::frame_callback(rs2::frame frame)
     {
         ROS_ERROR_STREAM("An error has occurred during frame callback: " << ex.what());
     }
+    catch (const rs2::wrong_api_call_sequence_error& e)
+    {
+        ROS_ERROR("frame_callback caught wrong_api_call_sequence_error");
+    }
+    catch (...)
+    {
+        ROS_ERROR("frame_callback caught unkown exception");
+    }
+
     _synced_imu_publisher->Resume();
 }; // frame_callback
 
