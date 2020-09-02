@@ -38,6 +38,16 @@ RealSenseNodeFactory::RealSenseNodeFactory()
 	rs2::log_to_console(severity);
 }
 
+RealSenseNodeFactory::~RealSenseNodeFactory()
+{
+    ROS_ERROR("~RealSenseNodeFactory()");
+    ROS_ERROR("_realSenseNode.reset()");
+    _realSenseNode.reset();
+    closeDevice();
+    ROS_ERROR("device closed");
+}
+
+
 void RealSenseNodeFactory::closeDevice()
 {
     ROS_ERROR("closeDevice");
@@ -53,7 +63,10 @@ void RealSenseNodeFactory::signalHandler(int signum)
     ROS_ERROR("signalHandler: %d", signum);
 	ROS_INFO_STREAM(strsignal(signum) << " Signal is received! Terminating RealSense Node...");
 	closeDevice();
+
+    ROS_ERROR("ros::shutdown()");
 	ros::shutdown();
+    ROS_ERROR("exit");
 	exit(signum);
 }
 
