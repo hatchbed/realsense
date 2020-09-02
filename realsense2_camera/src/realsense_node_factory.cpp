@@ -40,6 +40,7 @@ RealSenseNodeFactory::RealSenseNodeFactory()
 
 void RealSenseNodeFactory::closeDevice()
 {
+    ROS_ERROR("closeDevice");
     for(rs2::sensor sensor : _device.query_sensors())
 	{
 		sensor.stop();
@@ -49,6 +50,7 @@ void RealSenseNodeFactory::closeDevice()
 
 void RealSenseNodeFactory::signalHandler(int signum)
 {
+    ROS_ERROR("signalHandler: %d", signum);
 	ROS_INFO_STREAM(strsignal(signum) << " Signal is received! Terminating RealSense Node...");
 	closeDevice();
 	ros::shutdown();
@@ -230,6 +232,7 @@ void RealSenseNodeFactory::StartDevice()
 
 bool RealSenseNodeFactory::shutdown()
 {
+    ROS_ERROR("shutdown");
     nodelet::NodeletUnload srv;
     srv.request.name = getName();
     std::string unload_service;
@@ -254,6 +257,7 @@ bool RealSenseNodeFactory::shutdown()
 
 void RealSenseNodeFactory::reset()
 {
+    ROS_ERROR("reset");
     _realSenseNode.reset();
     initialize(ros::WallTimerEvent());
 }

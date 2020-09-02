@@ -56,7 +56,7 @@ namespace realsense2_camera
     {
     public:
         RealSenseNodeFactory();
-        virtual ~RealSenseNodeFactory() {}
+        virtual ~RealSenseNodeFactory() { ROS_ERROR("~RealSenseNodeFactory()"); }
 
     private:
         static void signalHandler(int signum);
