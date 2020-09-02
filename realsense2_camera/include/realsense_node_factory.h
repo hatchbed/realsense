@@ -21,6 +21,8 @@
 #include <csignal>
 #include <eigen3/Eigen/Geometry>
 #include <fstream>
+#include <thread>
+#include <std_srvs/Empty.h>
 
 namespace realsense2_camera
 {
@@ -34,7 +36,7 @@ namespace realsense2_camera
     const stream_index_pair GYRO{RS2_STREAM_GYRO, 0};
     const stream_index_pair ACCEL{RS2_STREAM_ACCEL, 0};
     const stream_index_pair POSE{RS2_STREAM_POSE, 0};
-    
+
 
     const std::vector<stream_index_pair> IMAGE_STREAMS = {DEPTH, INFRA1, INFRA2,
                                                           COLOR,
@@ -55,20 +57,35 @@ namespace realsense2_camera
     {
     public:
         RealSenseNodeFactory();
-        virtual ~RealSenseNodeFactory() {}
-
+        virtual ~RealSenseNodeFactory();
     private:
-        static void signalHandler(int signum);
-        static void closeDevice();
         void StartDevice();
         void change_device_callback(rs2::event_information& info);
         rs2::device getDevice();
         virtual void onInit() override;
+        void initialize(const ros::WallTimerEvent &ignored);
         void tryGetLogSeverity(rs2_log_severity& severity) const;
+        bool shutdown();
+        bool reset();
+        bool handleShutdown(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response);
+        bool handleReset(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response);
+        void dataMonitor(const ros::TimerEvent &e);
 
-        std::unique_ptr<InterfaceRealSenseNode> _realSenseNode;
+        std::shared_ptr<InterfaceRealSenseNode> _realSenseNode;
         rs2::context _ctx;
         std::string _serial_no;
         bool _initial_reset;
+        std::thread _query_thread;
+        bool _is_alive;
+        bool _initialized;
+        double _data_timeout;
+
+        enum TimeoutAction { TIMEOUT_WARN, TIMEOUT_RESET, TIMEOUT_SHUTDOWN };
+        TimeoutAction _timeout_action;
+
+        ros::WallTimer _init_timer;
+        ros::Timer _data_monitor_timer;
+        ros::ServiceServer _shutdown_srv;
+        ros::ServiceServer _reset_srv;
     };
 }//end namespace

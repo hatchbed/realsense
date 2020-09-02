@@ -18,6 +18,8 @@
 #include <queue>
 #include <mutex>
 #include <atomic>
+#include <string>
+#include <vector>
 
 namespace realsense2_camera
 {
@@ -101,7 +103,9 @@ namespace realsense2_camera
         void toggleSensors(bool enabled);
         virtual void publishTopics() override;
         virtual void registerDynamicReconfigCb(ros::NodeHandle& nh) override;
-        virtual ~BaseRealSenseNode() {}
+        virtual ~BaseRealSenseNode();
+
+        bool checkTopics(const ros::Time& timeout, std::vector<std::string>& stale_topics);
 
     public:
         enum imu_sync_method{NONE, COPY, LINEAR_INTERPOLATION};
@@ -208,7 +212,8 @@ namespace realsense2_camera
                           std::map<stream_index_pair, sensor_msgs::CameraInfo>& camera_info,
                           const std::map<stream_index_pair, std::string>& optical_frame_id,
                           const std::map<rs2_stream, std::string>& encoding,
-                          bool copy_data_from_frame = true);
+                          bool copy_data_from_frame = true,
+                          bool aligned = false);
         bool getEnabledProfile(const stream_index_pair& stream_index, rs2::stream_profile& profile);
 
         void publishAlignedDepthToOthers(rs2::frameset frames, const ros::Time& t);
@@ -282,6 +287,21 @@ namespace realsense2_camera
         std::map<stream_index_pair, ImagePublisherWithFrequencyDiagnostics> _depth_aligned_image_publishers;
         std::map<stream_index_pair, ros::Publisher> _depth_to_other_extrinsics_publishers;
         std::map<stream_index_pair, rs2_extrinsics> _depth_to_other_extrinsics;
+
+        // Topic monitoring
+        enum Topic { TOPIC_IMAGE, TOPIC_INFO, TOPIC_ALIGNED_IMAGE, TOPIC_ALIGNED_INFO, TOPIC_IMU, TOPIC_POINTS, TOPIC_ODOM};
+        struct TopicInfo
+        {
+            std::string name;
+            std::string resolved_name;
+            ros::Time last_published;
+        };
+        std::mutex _topic_monitor_mutex;
+        std::map<stream_index_pair, std::map<Topic, TopicInfo>> _topics;
+        void addMonitoredTopic(const stream_index_pair& stream, Topic topic, const std::string& name);
+        void updateMonitoredTopic(const stream_index_pair& stream, Topic topic);
+        void clearMonitoredTopic(const stream_index_pair& stream, Topic topic);
+
 
         const std::string _namespace;
 
