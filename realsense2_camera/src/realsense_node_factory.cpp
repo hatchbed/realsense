@@ -250,10 +250,11 @@ void RealSenseNodeFactory::StartDevice()
 bool RealSenseNodeFactory::shutdown()
 {
     ROS_ERROR("~RealSenseNodeFactory()");
+    _realSenseNode.reset();
+
     closeDevice();
     ROS_ERROR("device closed");
     ROS_ERROR("_realSenseNode.reset()");
-    _realSenseNode.reset();
     ROS_ERROR("node reset");
 
     return true;
