@@ -122,11 +122,18 @@ rs2::device RealSenseNodeFactory::getDevice()
 
 void RealSenseNodeFactory::change_device_callback(rs2::event_information& info)
 {
+	ROS_ERROR("change_device_callback");
 	if (info.was_removed(_device))
 	{
 		ROS_ERROR("The device has been disconnected!");
+		ROS_ERROR("Resetting ...");
 		reset();
 	}
+}
+
+void RealSenseNodeFactory::ignore_change_device_callback(rs2::event_information& info)
+{
+	ROS_ERROR("ignore_change_device_callback");
 }
 
 void RealSenseNodeFactory::onInit()
@@ -262,6 +269,10 @@ void RealSenseNodeFactory::StartDevice()
 
 bool RealSenseNodeFactory::shutdown()
 {
+
+	std::function<void(rs2::event_information&)> change_device_callback_function = [this](rs2::event_information& info){ignore_change_device_callback(info);};
+	_ctx.set_devices_changed_callback(change_device_callback_function);
+
 	std::string manager_name = ros::this_node::getName();
 	std::string unload_service = manager_name + "/unload_nodelet";
 
@@ -287,10 +298,17 @@ bool RealSenseNodeFactory::shutdown()
 
 void RealSenseNodeFactory::reset()
 {
+	ROS_INFO("reset()");
+
+	std::function<void(rs2::event_information&)> change_device_callback_function = [this](rs2::event_information& info){ignore_change_device_callback(info);};
+	_ctx.set_devices_changed_callback(change_device_callback_function);
+
 	_is_alive = false;
 	if (_query_thread.joinable())
 	{
+		ROS_INFO("reset() _query_thread.joinable()");
 		_query_thread.join();
+		ROS_INFO("reset() _query_thread.joined()");
 	}
 	_realSenseNode.reset();
 	if (_device)

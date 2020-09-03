@@ -61,6 +61,7 @@ namespace realsense2_camera
     private:
         void StartDevice();
         void change_device_callback(rs2::event_information& info);
+        void ignore_change_device_callback(rs2::event_information& info);
         rs2::device getDevice();
         virtual void onInit() override;
         void initialize(const ros::WallTimerEvent &ignored);

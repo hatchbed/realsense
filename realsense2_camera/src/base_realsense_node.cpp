@@ -1588,10 +1588,6 @@ void BaseRealSenseNode::frame_callback(rs2::frame frame)
     {
         ROS_ERROR("frame_callback caught wrong_api_call_sequence_error");
     }
-    catch (...)
-    {
-        ROS_ERROR("frame_callback caught unkown exception");
-    }
 
     _synced_imu_publisher->Resume();
 }; // frame_callback
