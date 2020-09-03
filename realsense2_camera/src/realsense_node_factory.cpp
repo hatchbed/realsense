@@ -55,8 +55,13 @@ void RealSenseNodeFactory::closeDevice()
     ROS_ERROR("closeDevice");
     for(rs2::sensor sensor : _device.query_sensors())
 	{
+        ROS_ERROR("stopping sensor");
 		sensor.stop();
+        ROS_ERROR("sensor stopped");
+        sleep(1);
+        ROS_ERROR("closing sensor");
 		sensor.close();
+        ROS_ERROR("sensor closed");
 	}
 }
 
@@ -249,10 +254,11 @@ void RealSenseNodeFactory::StartDevice()
 
 bool RealSenseNodeFactory::shutdown()
 {
+    closeDevice();
+
     ROS_ERROR("~RealSenseNodeFactory()");
     _realSenseNode.reset();
 
-    closeDevice();
     ROS_ERROR("device closed");
     ROS_ERROR("_realSenseNode.reset()");
     ROS_ERROR("node reset");
