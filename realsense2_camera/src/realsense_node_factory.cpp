@@ -40,6 +40,9 @@ RealSenseNodeFactory::RealSenseNodeFactory() :
 
 RealSenseNodeFactory::~RealSenseNodeFactory()
 {
+	std::function<void(rs2::event_information&)> change_device_callback_function = [this](rs2::event_information& info){ignore_change_device_callback(info);};
+	_ctx.set_devices_changed_callback(change_device_callback_function);
+	
 	ROS_ERROR("~RealSenseNodeFactory()");
 	_is_alive = false;
 	if (_query_thread.joinable())
@@ -50,37 +53,6 @@ RealSenseNodeFactory::~RealSenseNodeFactory()
 	}
 	ROS_ERROR("end ~RealSenseNodeFactory()");
 }
-
-/*
-void RealSenseNodeFactory::closeDevice()
-{
-    ROS_ERROR("closeDevice");
-    for(rs2::sensor sensor : _device.query_sensors())
-	{
-        try
-        {
-            ROS_ERROR("stopping sensor");
-    		sensor.stop();
-            ROS_ERROR("sensor stopped");
-        }
-        catch (const rs2::error & e)
-        {
-            ROS_ERROR_STREAM("Failed to stop sensor:" << e.what());
-        }
-
-        try
-        {
-            ROS_ERROR("closing sensor");
-    		sensor.close();
-            ROS_ERROR("sensor closed");
-        }
-        catch (const rs2::error & e)
-        {
-            ROS_ERROR_STREAM("Failed to close sensor:" << e.what());
-        }
-	}
-}
-*/
 
 rs2::device RealSenseNodeFactory::getDevice()
 {
