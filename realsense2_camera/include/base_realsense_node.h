@@ -102,7 +102,7 @@ namespace realsense2_camera
         virtual void publishTopics() override;
         virtual void hardwareReset();
         virtual void registerDynamicReconfigCb(ros::NodeHandle& nh) override;
-        virtual ~BaseRealSenseNode() { ROS_ERROR("~BaseRealSenseNode()"); }
+        virtual ~BaseRealSenseNode();
 
     public:
         enum imu_sync_method{NONE, COPY, LINEAR_INTERPOLATION};

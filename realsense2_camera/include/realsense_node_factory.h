@@ -21,6 +21,7 @@
 #include <csignal>
 #include <eigen3/Eigen/Geometry>
 #include <fstream>
+#include <thread>
 #include <std_srvs/Empty.h>
 
 namespace realsense2_camera
@@ -58,28 +59,26 @@ namespace realsense2_camera
         RealSenseNodeFactory();
         virtual ~RealSenseNodeFactory();
     private:
-        static void signalHandler(int signum);
-        static void closeDevice();
         void StartDevice();
         void change_device_callback(rs2::event_information& info);
         rs2::device getDevice();
         virtual void onInit() override;
         void initialize(const ros::WallTimerEvent &ignored);
         void tryGetLogSeverity(rs2_log_severity& severity) const;
-
-        bool handleShutdown(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response);
-        bool handleReset(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response);
-
         bool shutdown();
         void reset();
+        bool handleShutdown(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response);
+        bool handleReset(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response);
 
         std::unique_ptr<InterfaceRealSenseNode> _realSenseNode;
         rs2::context _ctx;
         std::string _serial_no;
         bool _initial_reset;
+        std::thread _query_thread;
+        bool _is_alive;
 
-        ros::WallTimer init_timer_;
-
-        ros::ServiceServer shutdown_srv_;
+        ros::WallTimer _init_timer;
+        ros::ServiceServer _shutdown_srv;
+        ros::ServiceServer _reset_srv;
     };
 }//end namespace

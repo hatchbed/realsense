@@ -13,7 +13,9 @@
 #include <sys/time.h>
 #include <chrono>
 
+#include <nodelet/NodeletList.h>
 #include <nodelet/NodeletUnload.h>
+#include <rosapi/ServicesForType.h>
 
 using namespace realsense2_camera;
 
@@ -24,12 +26,12 @@ PLUGINLIB_EXPORT_CLASS(realsense2_camera::RealSenseNodeFactory, nodelet::Nodelet
 
 rs2::device _device;
 
-RealSenseNodeFactory::RealSenseNodeFactory()
+RealSenseNodeFactory::RealSenseNodeFactory() :
+	_is_alive(true)
 {
 	ROS_INFO("RealSense ROS v%s", REALSENSE_ROS_VERSION_STR);
 	ROS_INFO("Running with LibRealSense v%s", RS2_API_VERSION_STR);
 
-	signal(SIGINT, signalHandler);
 	auto severity = rs2_log_severity::RS2_LOG_SEVERITY_WARN;
 	tryGetLogSeverity(severity);
 	if (rs2_log_severity::RS2_LOG_SEVERITY_DEBUG == severity)
@@ -40,16 +42,15 @@ RealSenseNodeFactory::RealSenseNodeFactory()
 
 RealSenseNodeFactory::~RealSenseNodeFactory()
 {
-    ROS_ERROR("~RealSenseNodeFactory()");
-    closeDevice();
-    ROS_ERROR("device closed");
-    ROS_ERROR("_realSenseNode.reset()");
-    _realSenseNode.reset();
-    ROS_ERROR("node reset");
-
+	_is_alive = false;
+	if (_query_thread.joinable())
+	{
+		_query_thread.join();
+	}
 }
 
 
+/*
 void RealSenseNodeFactory::closeDevice()
 {
     ROS_ERROR("closeDevice");
@@ -78,18 +79,7 @@ void RealSenseNodeFactory::closeDevice()
         }
 	}
 }
-
-void RealSenseNodeFactory::signalHandler(int signum)
-{
-    ROS_ERROR("signalHandler: %d", signum);
-	ROS_INFO_STREAM(strsignal(signum) << " Signal is received! Terminating RealSense Node...");
-	closeDevice();
-
-    ROS_ERROR("ros::shutdown()");
-	ros::shutdown();
-    ROS_ERROR("exit");
-	exit(signum);
-}
+*/
 
 rs2::device RealSenseNodeFactory::getDevice()
 {
@@ -134,28 +124,14 @@ void RealSenseNodeFactory::change_device_callback(rs2::event_information& info)
 	if (info.was_removed(_device))
 	{
 		ROS_ERROR("The device has been disconnected!");
-		_realSenseNode.reset(nullptr);
-		_device = rs2::device();
-	}
-	if (!_device)
-	{
-		rs2::device_list new_devices = info.get_new_devices();
-		if (new_devices.size() > 0)
-		{
-			ROS_INFO("Checking new devices...");
-			_device = getDevice();
-			if (_device)
-			{
-				StartDevice();
-			}
-		}
+		reset();
 	}
 }
 
 void RealSenseNodeFactory::onInit()
 {
-    auto nh = getNodeHandle();
-    init_timer_ = nh.createWallTimer(ros::WallDuration(1.0), &RealSenseNodeFactory::initialize, this, true);
+	auto nh = getNodeHandle();
+	_init_timer = nh.createWallTimer(ros::WallDuration(1.0), &RealSenseNodeFactory::initialize, this, true);
 }
 
 void RealSenseNodeFactory::initialize(const ros::WallTimerEvent &ignored)
@@ -189,32 +165,40 @@ void RealSenseNodeFactory::initialize(const ros::WallTimerEvent &ignored)
 		else
 		{
 			privateNh.param("initial_reset", _initial_reset, false);
-			_device = getDevice();
-			if (_device && _initial_reset)
-			{
-				_initial_reset = false;
-				try
-				{
-					ROS_INFO_STREAM("Resetting device with ID "<<_serial_no);
-					_device.hardware_reset();
-					std::this_thread::sleep_for (std::chrono::seconds(10));
-					_device = getDevice();
-				}
-				catch(const std::exception& ex)
-				{
-					ROS_WARN_STREAM("An exception has been thrown: " << ex.what());
-				}
-			}
-			std::function<void(rs2::event_information&)> change_device_callback_function = [this](rs2::event_information& info){change_device_callback(info);};
-			_ctx.set_devices_changed_callback(change_device_callback_function);
-		}
 
-		if (_device)
-		{
-			StartDevice();
-		}
+			_is_alive = true;
+			_query_thread = std::thread([=]()
+						{
+							std::chrono::milliseconds timespan(6000);
+							while (_is_alive && !_device)
+							{
+								_device = getDevice();
+								if (_device)
+								{
+									if (_initial_reset)
+									{
+										_initial_reset = false;
+										_device.hardware_reset();
+										std::this_thread::sleep_for(std::chrono::seconds(10));
+										_device = getDevice();
+									}
+									if (_device)
+									{
+										std::function<void(rs2::event_information&)> change_device_callback_function = [this](rs2::event_information& info){change_device_callback(info);};
+										_ctx.set_devices_changed_callback(change_device_callback_function);
+										StartDevice();
+									}
+								}
+								else
+								{
+									std::this_thread::sleep_for(timespan);
+								}
+							}
+						});
 
-        shutdown_srv_ = nh.advertiseService("shutdown", &RealSenseNodeFactory::handleShutdown, this);
+			_shutdown_srv = privateNh.advertiseService("shutdown", &RealSenseNodeFactory::handleShutdown, this);
+			_reset_srv = privateNh.advertiseService("reset", &RealSenseNodeFactory::handleShutdown, this);
+		}
 	}
 	catch(const std::exception& ex)
 	{
@@ -268,36 +252,39 @@ void RealSenseNodeFactory::StartDevice()
 
 bool RealSenseNodeFactory::shutdown()
 {
-    closeDevice();
+	ROS_ERROR("node name: %s", ros::this_node::getName().c_str());
+	ROS_ERROR("nodelet name: %s", getName().c_str());
 
-    ROS_ERROR("~RealSenseNodeFactory()");
-    _realSenseNode.reset();
-
-    ROS_ERROR("device closed");
-    ROS_ERROR("_realSenseNode.reset()");
-    ROS_ERROR("node reset");
-
-    return true;
+	// TODO service call
+	return true;
 }
 
 void RealSenseNodeFactory::reset()
 {
-    ROS_ERROR("reset");
-    _realSenseNode.reset();
-    initialize(ros::WallTimerEvent());
+	_is_alive = false;
+	if (_query_thread.joinable())
+	{
+		_query_thread.join();
+	}
+	_realSenseNode.reset();
+	if (_device)
+	{
+		_device.hardware_reset();
+		_device = rs2::device();
+	}
+	initialize(ros::WallTimerEvent());
 }
 
 bool RealSenseNodeFactory::handleShutdown(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response)
 {
-    return shutdown();
+	return shutdown();
 }
 
 bool RealSenseNodeFactory::handleReset(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response)
 {
-    reset();
-    return true;
+	reset();
+	return true;
 }
-
 
 void RealSenseNodeFactory::tryGetLogSeverity(rs2_log_severity& severity) const
 {
