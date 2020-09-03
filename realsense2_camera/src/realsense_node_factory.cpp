@@ -108,6 +108,10 @@ void RealSenseNodeFactory::change_device_callback(rs2::event_information& info)
 			reset();
 		}
 	}
+	else
+	{
+		ROS_ERROR("change_device_callback(): NOT INITIALIZED");
+	}
 }
 
 void RealSenseNodeFactory::ignore_change_device_callback(rs2::event_information& info)
@@ -166,6 +170,7 @@ void RealSenseNodeFactory::initialize(const ros::WallTimerEvent &ignored)
 								_device = getDevice();
 								if (_device)
 								{
+									ROS_ERROR("got device");
 									if (_initial_reset)
 									{
 										ROS_ERROR("Resetting device...");
@@ -176,6 +181,7 @@ void RealSenseNodeFactory::initialize(const ros::WallTimerEvent &ignored)
 									}
 									if (_device)
 									{
+										ROS_ERROR("starting device...");
 										std::function<void(rs2::event_information&)> change_device_callback_function = [this](rs2::event_information& info){change_device_callback(info);};
 										_ctx.set_devices_changed_callback(change_device_callback_function);
 										StartDevice();
@@ -183,6 +189,7 @@ void RealSenseNodeFactory::initialize(const ros::WallTimerEvent &ignored)
 								}
 								else
 								{
+									ROS_ERROR("sleep");
 									std::this_thread::sleep_for(timespan);
 								}
 							}
@@ -190,11 +197,15 @@ void RealSenseNodeFactory::initialize(const ros::WallTimerEvent &ignored)
 							ROS_ERROR("end Waiting for device...");
 						});
 
-			_shutdown_srv = privateNh.advertiseService("shutdown", &RealSenseNodeFactory::handleShutdown, this);
-			_reset_srv = privateNh.advertiseService("reset", &RealSenseNodeFactory::handleReset, this);
+			if (!_shutdown_srv)
+			{
+				_shutdown_srv = privateNh.advertiseService("shutdown", &RealSenseNodeFactory::handleShutdown, this);
+			}
+			if (!_reset_srv)
+			{
+				_reset_srv = privateNh.advertiseService("reset", &RealSenseNodeFactory::handleReset, this);
+			}
 		}
-
-		_initialized = true;
 	}
 	catch(const std::exception& ex)
 	{
@@ -244,6 +255,9 @@ void RealSenseNodeFactory::StartDevice()
 	assert(_realSenseNode);
 	_realSenseNode->publishTopics();
 	_realSenseNode->registerDynamicReconfigCb(nh);
+
+	ROS_ERROR("initialized = true");
+	_initialized = true;
 }
 
 bool RealSenseNodeFactory::shutdown()
@@ -280,6 +294,7 @@ bool RealSenseNodeFactory::reset()
 {
 	if (!_initialized)
 	{
+		ROS_ERROR("reset(): NOT INITIALIZED");
 		return false;
 	}
 
