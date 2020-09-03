@@ -127,6 +127,8 @@ BaseRealSenseNode::BaseRealSenseNode(ros::NodeHandle& nodeHandle,
 
 BaseRealSenseNode::~BaseRealSenseNode()
 {
+    ROS_ERROR("~BaseRealSenseNode()");
+
     std::set<std::string> module_names;
     for (const std::pair<stream_index_pair, std::vector<rs2::stream_profile>>& profile : _enabled_profiles)
     {
@@ -138,6 +140,7 @@ BaseRealSenseNode::~BaseRealSenseNode()
             _sensors[profile.first].close();
         }
     }
+    ROS_ERROR("end ~BaseRealSenseNode()");
 }
 
 void BaseRealSenseNode::toggleSensors(bool enabled)

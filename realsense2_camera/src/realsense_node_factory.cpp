@@ -40,13 +40,14 @@ RealSenseNodeFactory::RealSenseNodeFactory() :
 
 RealSenseNodeFactory::~RealSenseNodeFactory()
 {
+	ROS_ERROR("~RealSenseNodeFactory()");
 	_is_alive = false;
 	if (_query_thread.joinable())
 	{
 		_query_thread.join();
 	}
+	ROS_ERROR("end ~RealSenseNodeFactory()");
 }
-
 
 /*
 void RealSenseNodeFactory::closeDevice()
@@ -134,6 +135,10 @@ void RealSenseNodeFactory::onInit()
 
 void RealSenseNodeFactory::initialize(const ros::WallTimerEvent &ignored)
 {
+	ROS_ERROR("initialize");
+	_shutdown_srv = ros::ServiceServer();
+	_reset_srv = ros::ServiceServer();
+
 	try
 	{
 #ifdef BPDEBUG
@@ -167,14 +172,17 @@ void RealSenseNodeFactory::initialize(const ros::WallTimerEvent &ignored)
 			_is_alive = true;
 			_query_thread = std::thread([=]()
 						{
+							ROS_ERROR("Waiting for device...");
 							std::chrono::milliseconds timespan(6000);
 							while (_is_alive && !_device)
 							{
+								ROS_ERROR("Checking for device...");
 								_device = getDevice();
 								if (_device)
 								{
 									if (_initial_reset)
 									{
+										ROS_ERROR("Resetting device...");
 										_initial_reset = false;
 										_device.hardware_reset();
 										std::this_thread::sleep_for(std::chrono::seconds(10));
@@ -192,6 +200,8 @@ void RealSenseNodeFactory::initialize(const ros::WallTimerEvent &ignored)
 									std::this_thread::sleep_for(timespan);
 								}
 							}
+
+							ROS_ERROR("end Waiting for device...");
 						});
 
 			_shutdown_srv = privateNh.advertiseService("shutdown", &RealSenseNodeFactory::handleShutdown, this);
