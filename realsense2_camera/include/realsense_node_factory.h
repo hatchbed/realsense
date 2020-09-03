@@ -67,7 +67,7 @@ namespace realsense2_camera
         void initialize(const ros::WallTimerEvent &ignored);
         void tryGetLogSeverity(rs2_log_severity& severity) const;
         bool shutdown();
-        void reset();
+        bool reset();
         bool handleShutdown(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response);
         bool handleReset(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response);
 
@@ -77,6 +77,7 @@ namespace realsense2_camera
         bool _initial_reset;
         std::thread _query_thread;
         bool _is_alive;
+        bool _initialized;
 
         ros::WallTimer _init_timer;
         ros::ServiceServer _shutdown_srv;

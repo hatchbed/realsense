@@ -25,7 +25,8 @@ PLUGINLIB_EXPORT_CLASS(realsense2_camera::RealSenseNodeFactory, nodelet::Nodelet
 rs2::device _device;
 
 RealSenseNodeFactory::RealSenseNodeFactory() :
-	_is_alive(true)
+	_is_alive(true),
+	_initialized(false)
 {
 	ROS_INFO("RealSense ROS v%s", REALSENSE_ROS_VERSION_STR);
 	ROS_INFO("Running with LibRealSense v%s", RS2_API_VERSION_STR);
@@ -40,9 +41,11 @@ RealSenseNodeFactory::RealSenseNodeFactory() :
 
 RealSenseNodeFactory::~RealSenseNodeFactory()
 {
-	std::function<void(rs2::event_information&)> change_device_callback_function = [this](rs2::event_information& info){ignore_change_device_callback(info);};
-	_ctx.set_devices_changed_callback(change_device_callback_function);
-	
+	//std::function<void(rs2::event_information&)> change_device_callback_function = [this](rs2::event_information& info){ignore_change_device_callback(info);};
+	//_ctx.set_devices_changed_callback(change_device_callback_function);
+
+	_initialized = false;
+
 	ROS_ERROR("~RealSenseNodeFactory()");
 	_is_alive = false;
 	if (_query_thread.joinable())
@@ -95,11 +98,15 @@ rs2::device RealSenseNodeFactory::getDevice()
 void RealSenseNodeFactory::change_device_callback(rs2::event_information& info)
 {
 	ROS_ERROR("change_device_callback");
-	if (info.was_removed(_device))
+
+	if (_initialized)
 	{
-		ROS_ERROR("The device has been disconnected!");
-		ROS_ERROR("Resetting ...");
-		reset();
+		if (info.was_removed(_device))
+		{
+			ROS_ERROR("The device has been disconnected!");
+			ROS_ERROR("Resetting ...");
+			reset();
+		}
 	}
 }
 
@@ -117,8 +124,6 @@ void RealSenseNodeFactory::onInit()
 void RealSenseNodeFactory::initialize(const ros::WallTimerEvent &ignored)
 {
 	ROS_ERROR("initialize");
-	_shutdown_srv = ros::ServiceServer();
-	_reset_srv = ros::ServiceServer();
 
 	try
 	{
@@ -188,6 +193,8 @@ void RealSenseNodeFactory::initialize(const ros::WallTimerEvent &ignored)
 			_shutdown_srv = privateNh.advertiseService("shutdown", &RealSenseNodeFactory::handleShutdown, this);
 			_reset_srv = privateNh.advertiseService("reset", &RealSenseNodeFactory::handleReset, this);
 		}
+
+		_initialized = true;
 	}
 	catch(const std::exception& ex)
 	{
@@ -241,9 +248,10 @@ void RealSenseNodeFactory::StartDevice()
 
 bool RealSenseNodeFactory::shutdown()
 {
+	_initialized = false;
 
-	std::function<void(rs2::event_information&)> change_device_callback_function = [this](rs2::event_information& info){ignore_change_device_callback(info);};
-	_ctx.set_devices_changed_callback(change_device_callback_function);
+	//std::function<void(rs2::event_information&)> change_device_callback_function = [this](rs2::event_information& info){ignore_change_device_callback(info);};
+	//_ctx.set_devices_changed_callback(change_device_callback_function);
 
 	std::string manager_name = ros::this_node::getName();
 	std::string unload_service = manager_name + "/unload_nodelet";
@@ -268,19 +276,24 @@ bool RealSenseNodeFactory::shutdown()
 	return true;
 }
 
-void RealSenseNodeFactory::reset()
+bool RealSenseNodeFactory::reset()
 {
-	ROS_INFO("reset()");
+	if (!_initialized)
+	{
+		return false;
+	}
 
-	std::function<void(rs2::event_information&)> change_device_callback_function = [this](rs2::event_information& info){ignore_change_device_callback(info);};
-	_ctx.set_devices_changed_callback(change_device_callback_function);
+	_initialized = false;
+
+	//std::function<void(rs2::event_information&)> change_device_callback_function = [this](rs2::event_information& info){ignore_change_device_callback(info);};
+	//_ctx.set_devices_changed_callback(change_device_callback_function);
 
 	_is_alive = false;
 	if (_query_thread.joinable())
 	{
-		ROS_INFO("reset() _query_thread.joinable()");
+		ROS_ERROR("reset() _query_thread.joinable()");
 		_query_thread.join();
-		ROS_INFO("reset() _query_thread.joined()");
+		ROS_ERROR("reset() _query_thread.joined()");
 	}
 	_realSenseNode.reset();
 	if (_device)
@@ -288,7 +301,9 @@ void RealSenseNodeFactory::reset()
 		_device.hardware_reset();
 		_device = rs2::device();
 	}
-	initialize(ros::WallTimerEvent());
+
+	_init_timer = getNodeHandle().createWallTimer(ros::WallDuration(1.0), &RealSenseNodeFactory::initialize, this, true);
+	return true;
 }
 
 bool RealSenseNodeFactory::handleShutdown(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response)
@@ -298,8 +313,7 @@ bool RealSenseNodeFactory::handleShutdown(std_srvs::Empty::Request& request, std
 
 bool RealSenseNodeFactory::handleReset(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response)
 {
-	reset();
-	return true;
+	return reset();
 }
 
 void RealSenseNodeFactory::tryGetLogSeverity(rs2_log_severity& severity) const
