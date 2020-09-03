@@ -15,12 +15,37 @@
 
 #include <nodelet/NodeletUnload.h>
 
+
 using namespace realsense2_camera;
 
 #define REALSENSE_ROS_EMBEDDED_VERSION_STR (VAR_ARG_STRING(VERSION: REALSENSE_ROS_MAJOR_VERSION.REALSENSE_ROS_MINOR_VERSION.REALSENSE_ROS_PATCH_VERSION))
 constexpr auto realsense_ros_camera_version = REALSENSE_ROS_EMBEDDED_VERSION_STR;
 
 PLUGINLIB_EXPORT_CLASS(realsense2_camera::RealSenseNodeFactory, nodelet::Nodelet)
+
+ #include <execinfo.h>
+ #include <stdio.h>
+ #include <stdlib.h>
+ 
+ /* Obtain a backtrace and print it to stdout. */
+ void
+ print_trace (void)
+ {
+   void *array[10];
+   size_t size;
+   char **strings;
+   size_t i;
+ 
+   size = backtrace (array, 10);
+   strings = backtrace_symbols (array, size);
+ 
+   ROS_ERROR("Obtained %zd stack frames.\n", size);
+ 
+   for (i = 0; i < size; i++)
+      ROS_ERROR("%s\n", strings[i]);
+ 
+   free (strings);
+ }
 
 rs2::device _device;
 
@@ -127,7 +152,8 @@ void RealSenseNodeFactory::onInit()
 
 void RealSenseNodeFactory::initialize(const ros::WallTimerEvent &ignored)
 {
-	ROS_ERROR("initialize");
+	ROS_ERROR("initialize()");
+	print_trace();
 
 	try
 	{
@@ -262,6 +288,7 @@ void RealSenseNodeFactory::StartDevice()
 
 bool RealSenseNodeFactory::shutdown()
 {
+	ROS_ERROR("shutdown()");
 	_initialized = false;
 
 	//std::function<void(rs2::event_information&)> change_device_callback_function = [this](rs2::event_information& info){ignore_change_device_callback(info);};
@@ -275,6 +302,7 @@ bool RealSenseNodeFactory::shutdown()
 	{
 		nodelet::NodeletUnload srv;
 		srv.request.name = getName();
+		ROS_ERROR("calling unload service");
 		if (!ros::service::call(unload_service, srv) || !srv.response.success)
 		{
 			ROS_WARN("Failed to unload nodelet, requesting shutdown ...");
@@ -287,11 +315,15 @@ bool RealSenseNodeFactory::shutdown()
 		ros::requestShutdown();
 	}
 
+	ROS_ERROR("end shutdown()");
+
 	return true;
 }
 
 bool RealSenseNodeFactory::reset()
 {
+	ROS_ERROR("reset()");
+	print_trace();
 	if (!_initialized)
 	{
 		ROS_ERROR("reset(): NOT INITIALIZED");
