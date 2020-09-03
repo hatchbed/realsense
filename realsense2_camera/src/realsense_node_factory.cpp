@@ -44,7 +44,9 @@ RealSenseNodeFactory::~RealSenseNodeFactory()
 	_is_alive = false;
 	if (_query_thread.joinable())
 	{
+		ROS_ERROR("_query_thread.joinable()");
 		_query_thread.join();
+		ROS_ERROR("_query_thread.joined()");
 	}
 	ROS_ERROR("end ~RealSenseNodeFactory()");
 }
