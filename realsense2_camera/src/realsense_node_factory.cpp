@@ -13,9 +13,7 @@
 #include <sys/time.h>
 #include <chrono>
 
-#include <nodelet/NodeletList.h>
 #include <nodelet/NodeletUnload.h>
-#include <rosapi/ServicesForType.h>
 
 using namespace realsense2_camera;
 
@@ -197,7 +195,7 @@ void RealSenseNodeFactory::initialize(const ros::WallTimerEvent &ignored)
 						});
 
 			_shutdown_srv = privateNh.advertiseService("shutdown", &RealSenseNodeFactory::handleShutdown, this);
-			_reset_srv = privateNh.advertiseService("reset", &RealSenseNodeFactory::handleShutdown, this);
+			_reset_srv = privateNh.advertiseService("reset", &RealSenseNodeFactory::handleReset, this);
 		}
 	}
 	catch(const std::exception& ex)
@@ -252,10 +250,26 @@ void RealSenseNodeFactory::StartDevice()
 
 bool RealSenseNodeFactory::shutdown()
 {
-	ROS_ERROR("node name: %s", ros::this_node::getName().c_str());
-	ROS_ERROR("nodelet name: %s", getName().c_str());
+	std::string manager_name = ros::this_node::getName();
+	std::string unload_service = manager_name + "/unload_nodelet";
 
-	// TODO service call
+	ROS_INFO("Waiting for %s", unload_service.c_str());
+	if (ros::service::waitForService(unload_service, 0.1))
+	{
+		nodelet::NodeletUnload srv;
+		srv.request.name = getName();
+		if (!ros::service::call(unload_service, srv) || !srv.response.success)
+		{
+			ROS_WARN("Failed to unload nodelet, requesting shutdown ...");
+			ros::requestShutdown();
+		}
+	}
+	else
+	{
+		ROS_WARN("Failed to find unload nodelet service, requesting shutdown ...");
+		ros::requestShutdown();
+	}
+
 	return true;
 }
 
