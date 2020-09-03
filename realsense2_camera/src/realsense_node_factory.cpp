@@ -194,6 +194,8 @@ void RealSenseNodeFactory::initialize(const ros::WallTimerEvent &ignored)
 		{
 			StartDevice();
 		}
+
+        shutdown_srv_ = nh.advertiseService("shutdown", &RealSenseNodeFactory::handleShutdown, this);
 	}
 	catch(const std::exception& ex)
 	{

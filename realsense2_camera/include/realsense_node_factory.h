@@ -79,5 +79,7 @@ namespace realsense2_camera
         bool _initial_reset;
 
         ros::WallTimer init_timer_;
+
+        ros::ServiceServer shutdown_srv_;
     };
 }//end namespace
