@@ -55,13 +55,27 @@ void RealSenseNodeFactory::closeDevice()
     ROS_ERROR("closeDevice");
     for(rs2::sensor sensor : _device.query_sensors())
 	{
-        ROS_ERROR("stopping sensor");
-		sensor.stop();
-        ROS_ERROR("sensor stopped");
-        sleep(1);
-        ROS_ERROR("closing sensor");
-		sensor.close();
-        ROS_ERROR("sensor closed");
+        try
+        {
+            ROS_ERROR("stopping sensor");
+    		sensor.stop();
+            ROS_ERROR("sensor stopped");
+        }
+        catch (const rs2::error & e)
+        {
+            ROS_ERROR_STREAM("Failed to stop sensor:" << e.what());
+        }
+
+        try
+        {
+            ROS_ERROR("closing sensor");
+    		sensor.close();
+            ROS_ERROR("sensor closed");
+        }
+        catch (const rs2::error & e)
+        {
+            ROS_ERROR_STREAM("Failed to close sensor:" << e.what());
+        }
 	}
 }
 
