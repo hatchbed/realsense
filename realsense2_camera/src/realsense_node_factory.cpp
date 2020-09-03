@@ -249,27 +249,14 @@ void RealSenseNodeFactory::StartDevice()
 
 bool RealSenseNodeFactory::shutdown()
 {
-    ROS_ERROR("shutdown");
-    nodelet::NodeletUnload srv;
-    srv.request.name = getName();
-    std::string unload_service;
-    if (ros::service::exists(unload_service, true))
-    {
-        if(ros::service::call(unload_service, srv))
-        {
-            return true;
-        }
-        else
-        {
-            ROS_ERROR("Failed to unload: %s", srv.request.name.c_str());
-        }
-    }
-    else
-    {
-        ROS_ERROR("Failed to find unload service: %s", unload_service.c_str());
-    }
+    ROS_ERROR("~RealSenseNodeFactory()");
+    closeDevice();
+    ROS_ERROR("device closed");
+    ROS_ERROR("_realSenseNode.reset()");
+    _realSenseNode.reset();
+    ROS_ERROR("node reset");
 
-    return false;
+    return true;
 }
 
 void RealSenseNodeFactory::reset()
