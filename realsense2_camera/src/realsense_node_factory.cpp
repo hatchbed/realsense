@@ -23,30 +23,6 @@ constexpr auto realsense_ros_camera_version = REALSENSE_ROS_EMBEDDED_VERSION_STR
 
 PLUGINLIB_EXPORT_CLASS(realsense2_camera::RealSenseNodeFactory, nodelet::Nodelet)
 
- #include <execinfo.h>
- #include <stdio.h>
- #include <stdlib.h>
- 
- /* Obtain a backtrace and print it to stdout. */
- void
- print_trace (void)
- {
-   void *array[10];
-   size_t size;
-   char **strings;
-   size_t i;
- 
-   size = backtrace (array, 10);
-   strings = backtrace_symbols (array, size);
- 
-   ROS_ERROR("Obtained %zd stack frames.\n", size);
- 
-   for (i = 0; i < size; i++)
-      ROS_ERROR("%s\n", strings[i]);
- 
-   free (strings);
- }
-
 rs2::device _device;
 
 RealSenseNodeFactory::RealSenseNodeFactory() :
@@ -79,6 +55,14 @@ RealSenseNodeFactory::~RealSenseNodeFactory()
 		_query_thread.join();
 		ROS_ERROR("_query_thread.joined()");
 	}
+
+	_realSenseNode.reset();
+	if (_device)
+	{
+		_device.hardware_reset();
+		_device = rs2::device();
+	}
+
 	ROS_ERROR("end ~RealSenseNodeFactory()");
 }
 
@@ -139,21 +123,20 @@ void RealSenseNodeFactory::change_device_callback(rs2::event_information& info)
 	}
 }
 
-void RealSenseNodeFactory::ignore_change_device_callback(rs2::event_information& info)
-{
-	ROS_ERROR("ignore_change_device_callback");
-}
-
 void RealSenseNodeFactory::onInit()
 {
 	auto nh = getNodeHandle();
+	ROS_ERROR("onInit()");
+	sleep(1);
+	ROS_ERROR("onInit()");
+	sleep(1);
+	ROS_ERROR("onInit()");
 	_init_timer = nh.createWallTimer(ros::WallDuration(1.0), &RealSenseNodeFactory::initialize, this, true);
 }
 
 void RealSenseNodeFactory::initialize(const ros::WallTimerEvent &ignored)
 {
 	ROS_ERROR("initialize()");
-	print_trace();
 
 	try
 	{
@@ -323,7 +306,6 @@ bool RealSenseNodeFactory::shutdown()
 bool RealSenseNodeFactory::reset()
 {
 	ROS_ERROR("reset()");
-	print_trace();
 	if (!_initialized)
 	{
 		ROS_ERROR("reset(): NOT INITIALIZED");

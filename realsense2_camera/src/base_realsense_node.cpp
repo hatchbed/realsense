@@ -1584,10 +1584,6 @@ void BaseRealSenseNode::frame_callback(rs2::frame frame)
     {
         ROS_ERROR_STREAM("An error has occurred during frame callback: " << ex.what());
     }
-    catch (const rs2::wrong_api_call_sequence_error& e)
-    {
-        ROS_ERROR("frame_callback caught wrong_api_call_sequence_error");
-    }
 
     _synced_imu_publisher->Resume();
 }; // frame_callback
