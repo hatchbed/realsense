@@ -47,6 +47,7 @@ RealSenseNodeFactory::~RealSenseNodeFactory()
 
 	_initialized = false;
 
+	ROS_ERROR("stopping data monitor ...");
 	_data_monitor_timer.stop();
 
 	ROS_ERROR("~RealSenseNodeFactory()");
@@ -248,6 +249,7 @@ void RealSenseNodeFactory::initialize(const ros::WallTimerEvent &ignored)
 
 void RealSenseNodeFactory::dataMonitor(const ros::TimerEvent &e)
 {
+	ROS_ERROR("dataMonitor");
 	if (!_realSenseNode || _data_timeout <= 0.0)
 	{
 		return;
@@ -333,7 +335,12 @@ void RealSenseNodeFactory::StartDevice()
 	_data_timeout = privateNh.param("data_timeout", 0.0);
 	if (_data_timeout > 0.0)
 	{
+		ROS_ERROR("starting data monitor ...");
 		_data_monitor_timer = nh.createTimer(ros::Duration(_data_timeout), &RealSenseNodeFactory::dataMonitor, this, false);
+	}
+	else
+	{
+		ROS_ERROR("not monitoring data.");
 	}
 }
 
@@ -342,6 +349,7 @@ bool RealSenseNodeFactory::shutdown()
 	ROS_ERROR("shutdown()");
 	_initialized = false;
 
+	ROS_ERROR("stopping data monitor ...");
 	_data_monitor_timer.stop();
 
 	//std::function<void(rs2::event_information&)> change_device_callback_function = [this](rs2::event_information& info){ignore_change_device_callback(info);};
@@ -384,6 +392,7 @@ bool RealSenseNodeFactory::reset()
 
 	_initialized = false;
 
+	ROS_ERROR("stopping data monitor ...");
 	_data_monitor_timer.stop();
 
 	//std::function<void(rs2::event_information&)> change_device_callback_function = [this](rs2::event_information& info){ignore_change_device_callback(info);};
