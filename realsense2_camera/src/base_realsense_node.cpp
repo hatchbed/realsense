@@ -22,9 +22,7 @@ SyncedImuPublisher::SyncedImuPublisher(ros::Publisher imu_publisher, std::size_t
 
 SyncedImuPublisher::~SyncedImuPublisher()
 {
-    ROS_ERROR("~SyncedImuPublisher()");
     PublishPendingMessages();
-    ROS_ERROR("Published Pending Messages");
 }
 
 void SyncedImuPublisher::Publish(sensor_msgs::Imu imu_msg)
@@ -127,8 +125,6 @@ BaseRealSenseNode::BaseRealSenseNode(ros::NodeHandle& nodeHandle,
 
 BaseRealSenseNode::~BaseRealSenseNode()
 {
-    ROS_ERROR("~BaseRealSenseNode()");
-
     std::set<std::string> module_names;
     for (const std::pair<stream_index_pair, std::vector<rs2::stream_profile>>& profile : _enabled_profiles)
     {
@@ -147,7 +143,6 @@ BaseRealSenseNode::~BaseRealSenseNode()
             ROS_ERROR_STREAM("Exception: " << e.what());
         }
     }
-    ROS_ERROR("end ~BaseRealSenseNode()");
 }
 
 void BaseRealSenseNode::toggleSensors(bool enabled)
@@ -202,11 +197,6 @@ void BaseRealSenseNode::publishTopics()
     setupFilters();
     publishStaticTransforms();
     ROS_INFO_STREAM("RealSense Node Is Up!");
-}
-
-void BaseRealSenseNode::hardwareReset()
-{
-    _dev.hardware_reset();
 }
 
 bool is_checkbox(rs2::options sensor, rs2_option option)
@@ -792,7 +782,6 @@ void BaseRealSenseNode::updateMonitoredTopic(const stream_index_pair& stream, To
 
 bool BaseRealSenseNode::checkTopics(const ros::Time& timeout, std::vector<std::string>& stale_topics)
 {
-    ROS_ERROR("Checking topics ...");
     bool ok = true;
     const std::lock_guard<std::mutex> lock(_topic_monitor_mutex);
     for (const auto& stream: _topics)
@@ -803,15 +792,6 @@ bool BaseRealSenseNode::checkTopics(const ros::Time& timeout, std::vector<std::s
             {
                 ok = false;
                 stale_topics.push_back(topic.second.name + ": " + topic.second.resolved_name);
-                ROS_ERROR("  topic %s: %s is stale", topic.second.name.c_str(), topic.second.resolved_name.c_str());
-            }
-            else if (topic.second.last_published == ros::TIME_MIN)
-            {
-                ROS_ERROR("  ignoring unpublished topic %s: %s", topic.second.name.c_str(), topic.second.resolved_name.c_str());
-            }
-            else
-            {
-                ROS_ERROR("  GOOD topic %s: %s", topic.second.name.c_str(), topic.second.resolved_name.c_str());
             }
         }
     }
@@ -2180,11 +2160,6 @@ void BaseRealSenseNode::publishFrame(rs2::frame f, const ros::Time& t,
     }
 
     ++(seq[stream]);
-
-    if (seq[stream] > 3000)
-    {
-        return;
-    }
 
     auto& image_publisher = image_publishers.at(stream);
     auto& info_publisher = info_publishers.at(stream);

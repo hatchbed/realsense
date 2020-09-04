@@ -102,7 +102,6 @@ namespace realsense2_camera
 
         void toggleSensors(bool enabled);
         virtual void publishTopics() override;
-        virtual void hardwareReset();
         virtual void registerDynamicReconfigCb(ros::NodeHandle& nh) override;
         virtual ~BaseRealSenseNode();
 

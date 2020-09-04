@@ -42,21 +42,12 @@ RealSenseNodeFactory::RealSenseNodeFactory() :
 
 RealSenseNodeFactory::~RealSenseNodeFactory()
 {
-	//std::function<void(rs2::event_information&)> change_device_callback_function = [this](rs2::event_information& info){ignore_change_device_callback(info);};
-	//_ctx.set_devices_changed_callback(change_device_callback_function);
-
 	_initialized = false;
-
-	ROS_ERROR("stopping data monitor ...");
 	_data_monitor_timer.stop();
-
-	ROS_ERROR("~RealSenseNodeFactory()");
 	_is_alive = false;
 	if (_query_thread.joinable())
 	{
-		ROS_ERROR("_query_thread.joinable()");
 		_query_thread.join();
-		ROS_ERROR("_query_thread.joined()");
 	}
 
 	_realSenseNode.reset();
@@ -65,8 +56,6 @@ RealSenseNodeFactory::~RealSenseNodeFactory()
 		_device.hardware_reset();
 		_device = rs2::device();
 	}
-
-	ROS_ERROR("end ~RealSenseNodeFactory()");
 }
 
 rs2::device RealSenseNodeFactory::getDevice()
@@ -109,8 +98,6 @@ rs2::device RealSenseNodeFactory::getDevice()
 
 void RealSenseNodeFactory::change_device_callback(rs2::event_information& info)
 {
-	ROS_ERROR("change_device_callback");
-
 	if (_initialized)
 	{
 		if (info.was_removed(_device))
@@ -120,23 +107,16 @@ void RealSenseNodeFactory::change_device_callback(rs2::event_information& info)
 			reset();
 		}
 	}
-	else
-	{
-		ROS_ERROR("change_device_callback(): NOT INITIALIZED");
-	}
 }
 
 void RealSenseNodeFactory::onInit()
 {
 	auto nh = getNodeHandle();
-	ROS_ERROR("onInit()");
 	_init_timer = nh.createWallTimer(ros::WallDuration(1.0), &RealSenseNodeFactory::initialize, this, true);
 }
 
 void RealSenseNodeFactory::initialize(const ros::WallTimerEvent &ignored)
 {
-	ROS_ERROR("initialize()");
-
 	try
 	{
 #ifdef BPDEBUG
@@ -190,18 +170,18 @@ void RealSenseNodeFactory::initialize(const ros::WallTimerEvent &ignored)
 			_is_alive = true;
 			_query_thread = std::thread([=]()
 						{
-							ROS_ERROR("Waiting for device...");
+							ROS_DEBUG("Waiting for device...");
 							std::chrono::milliseconds timespan(6000);
 							while (_is_alive && !_device)
 							{
-								ROS_ERROR("Checking for device...");
+								ROS_DEBUG("Checking for device...");
 								_device = getDevice();
 								if (_device)
 								{
-									ROS_ERROR("got device");
+									ROS_DEBUG("got device");
 									if (_initial_reset)
 									{
-										ROS_ERROR("Resetting device...");
+										ROS_DEBUG("Resetting device...");
 										_initial_reset = false;
 										_device.hardware_reset();
 										std::this_thread::sleep_for(std::chrono::seconds(10));
@@ -209,7 +189,7 @@ void RealSenseNodeFactory::initialize(const ros::WallTimerEvent &ignored)
 									}
 									if (_device)
 									{
-										ROS_ERROR("starting device...");
+										ROS_DEBUG("starting device...");
 										std::function<void(rs2::event_information&)> change_device_callback_function = [this](rs2::event_information& info){change_device_callback(info);};
 										_ctx.set_devices_changed_callback(change_device_callback_function);
 										StartDevice();
@@ -217,12 +197,9 @@ void RealSenseNodeFactory::initialize(const ros::WallTimerEvent &ignored)
 								}
 								else
 								{
-									ROS_ERROR("sleep");
 									std::this_thread::sleep_for(timespan);
 								}
 							}
-
-							ROS_ERROR("end Waiting for device...");
 						});
 
 			if (!_shutdown_srv)
@@ -249,7 +226,6 @@ void RealSenseNodeFactory::initialize(const ros::WallTimerEvent &ignored)
 
 void RealSenseNodeFactory::dataMonitor(const ros::TimerEvent &e)
 {
-	ROS_ERROR("dataMonitor");
 	if (!_realSenseNode || _data_timeout <= 0.0)
 	{
 		return;
@@ -329,41 +305,32 @@ void RealSenseNodeFactory::StartDevice()
 	_realSenseNode->publishTopics();
 	_realSenseNode->registerDynamicReconfigCb(nh);
 
-	ROS_ERROR("initialized = true");
 	_initialized = true;
 
 	_data_timeout = privateNh.param("data_timeout", 0.0);
 	if (_data_timeout > 0.0)
 	{
-		ROS_ERROR("starting data monitor ...");
+		ROS_INFO("starting data monitor ...");
 		_data_monitor_timer = nh.createTimer(ros::Duration(_data_timeout), &RealSenseNodeFactory::dataMonitor, this, false);
 	}
 	else
 	{
-		ROS_ERROR("not monitoring data.");
+		ROS_INFO("not monitoring data.");
 	}
 }
 
 bool RealSenseNodeFactory::shutdown()
 {
-	ROS_ERROR("shutdown()");
 	_initialized = false;
-
-	ROS_ERROR("stopping data monitor ...");
 	_data_monitor_timer.stop();
-
-	//std::function<void(rs2::event_information&)> change_device_callback_function = [this](rs2::event_information& info){ignore_change_device_callback(info);};
-	//_ctx.set_devices_changed_callback(change_device_callback_function);
 
 	std::string manager_name = ros::this_node::getName();
 	std::string unload_service = manager_name + "/unload_nodelet";
 
-	ROS_INFO("Waiting for %s", unload_service.c_str());
 	if (ros::service::waitForService(unload_service, 0.1))
 	{
 		nodelet::NodeletUnload srv;
 		srv.request.name = getName();
-		ROS_ERROR("calling unload service");
 		if (!ros::service::call(unload_service, srv) || !srv.response.success)
 		{
 			ROS_WARN("Failed to unload nodelet, requesting shutdown ...");
@@ -376,44 +343,31 @@ bool RealSenseNodeFactory::shutdown()
 		ros::requestShutdown();
 	}
 
-	ROS_ERROR("end shutdown()");
-
 	return true;
 }
 
 bool RealSenseNodeFactory::reset()
 {
-	ROS_ERROR("reset()");
 	if (!_initialized)
 	{
-		ROS_ERROR("reset(): NOT INITIALIZED");
 		return false;
 	}
 
 	_initialized = false;
 
-	ROS_ERROR("stopping data monitor ...");
 	_data_monitor_timer.stop();
-
-	//std::function<void(rs2::event_information&)> change_device_callback_function = [this](rs2::event_information& info){ignore_change_device_callback(info);};
-	//_ctx.set_devices_changed_callback(change_device_callback_function);
 
 	_is_alive = false;
 	if (_query_thread.joinable())
 	{
-		ROS_ERROR("reset() _query_thread.joinable()");
 		_query_thread.join();
-		ROS_ERROR("reset() _query_thread.joined()");
 	}
 	_realSenseNode.reset();
-	ROS_ERROR("reset() checking device");
 	if (_device)
 	{
-		ROS_ERROR("reset() _device.hardware_reset()");
 		_device.hardware_reset();
 		_device = rs2::device();
 	}
-	ROS_ERROR("reset() init timer");
 
 	_init_timer = getNodeHandle().createWallTimer(ros::WallDuration(1.0), &RealSenseNodeFactory::initialize, this, true);
 	return true;
