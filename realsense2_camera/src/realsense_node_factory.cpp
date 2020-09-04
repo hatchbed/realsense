@@ -47,6 +47,8 @@ RealSenseNodeFactory::~RealSenseNodeFactory()
 
 	_initialized = false;
 
+	_data_monitor_timer.stop();
+
 	ROS_ERROR("~RealSenseNodeFactory()");
 	_is_alive = false;
 	if (_query_thread.joinable())
@@ -127,10 +129,6 @@ void RealSenseNodeFactory::onInit()
 {
 	auto nh = getNodeHandle();
 	ROS_ERROR("onInit()");
-	sleep(1);
-	ROS_ERROR("onInit()");
-	sleep(1);
-	ROS_ERROR("onInit()");
 	_init_timer = nh.createWallTimer(ros::WallDuration(1.0), &RealSenseNodeFactory::initialize, this, true);
 }
 
@@ -149,6 +147,26 @@ void RealSenseNodeFactory::initialize(const ros::WallTimerEvent &ignored)
 		auto privateNh = getPrivateNodeHandle();
 		privateNh.param("serial_no", _serial_no, std::string(""));
 
+		std::string timeout_action;
+		privateNh.param("timeout_action", timeout_action, std::string("warn"));
+		if (timeout_action == "warn")
+		{
+			_timeout_action = TIMEOUT_WARN;
+		}
+		else if (timeout_action == "reset")
+		{
+			_timeout_action = TIMEOUT_RESET;
+		}
+		else if (timeout_action == "shutdown")
+		{
+			_timeout_action = TIMEOUT_SHUTDOWN;
+		}
+		else
+		{
+			_timeout_action = TIMEOUT_WARN;
+			ROS_WARN("Invalid timeout_action (warn|reset|shutdown): %s", timeout_action.c_str());
+		}
+
 		std::string rosbag_filename("");
 		privateNh.param("rosbag_filename", rosbag_filename, std::string(""));
 		if (!rosbag_filename.empty())
@@ -160,7 +178,7 @@ void RealSenseNodeFactory::initialize(const ros::WallTimerEvent &ignored)
 			cfg.enable_all_streams();
 			pipe->start(cfg); //File will be opened in read mode at this point
 			_device = pipe->get_active_profile().get_device();
-			_realSenseNode = std::unique_ptr<BaseRealSenseNode>(new BaseRealSenseNode(nh, privateNh, _device, _serial_no));
+			_realSenseNode = std::shared_ptr<BaseRealSenseNode>(new BaseRealSenseNode(nh, privateNh, _device, _serial_no));
 			_realSenseNode->publishTopics();
 			_realSenseNode->registerDynamicReconfigCb(nh);
 		}
@@ -228,6 +246,50 @@ void RealSenseNodeFactory::initialize(const ros::WallTimerEvent &ignored)
 	}
 }
 
+void RealSenseNodeFactory::dataMonitor(const ros::TimerEvent &e)
+{
+	if (!_realSenseNode || _data_timeout <= 0.0)
+	{
+		return;
+	}
+
+	ros::Time timeout = e.current_real - ros::Duration(_data_timeout);
+
+	std::vector<std::string> stale_topics;
+	if (!std::dynamic_pointer_cast<BaseRealSenseNode>(_realSenseNode)->checkTopics(timeout, stale_topics))
+	{
+		if (_timeout_action == TIMEOUT_WARN)
+		{
+			std::string stale_topic_string;
+			for (const auto& topic: stale_topics)
+			{
+				stale_topic_string += topic + ", ";
+			}
+			ROS_WARN_THROTTLE(1.0, "Realsense data timed out. Stale topics: %s", stale_topic_string.c_str());
+		}
+		else if (_timeout_action == TIMEOUT_RESET)
+		{
+			ROS_ERROR("Realsense data timed out. Resetting driver.");
+			ROS_ERROR("The following topics were stale:");
+			for (const auto& topic: stale_topics)
+			{
+				ROS_ERROR("  %s", topic.c_str());
+			}
+			reset();
+		}
+		else if (_timeout_action == TIMEOUT_SHUTDOWN)
+		{
+			ROS_ERROR("Realsense data timed out. Shutting down driver.");
+			ROS_ERROR("The following topics were stale:");
+			for (const auto& topic: stale_topics)
+			{
+				ROS_ERROR("  %s", topic.c_str());
+			}
+			shutdown();
+		}
+	}
+}
+
 void RealSenseNodeFactory::StartDevice()
 {
 	ros::NodeHandle nh = getNodeHandle();
@@ -251,10 +313,10 @@ void RealSenseNodeFactory::StartDevice()
 	case RS435_RGB_PID:
 	case RS435i_RGB_PID:
 	case RS_USB2_PID:
-		_realSenseNode = std::unique_ptr<BaseRealSenseNode>(new BaseRealSenseNode(nh, privateNh, _device, _serial_no));
+		_realSenseNode = std::shared_ptr<BaseRealSenseNode>(new BaseRealSenseNode(nh, privateNh, _device, _serial_no));
 		break;
 	case RS_T265_PID:
-		_realSenseNode = std::unique_ptr<T265RealsenseNode>(new T265RealsenseNode(nh, privateNh, _device, _serial_no));
+		_realSenseNode = std::shared_ptr<T265RealsenseNode>(new T265RealsenseNode(nh, privateNh, _device, _serial_no));
 		break;
 	default:
 		ROS_FATAL_STREAM("Unsupported device!" << " Product ID: 0x" << pid_str);
@@ -267,12 +329,20 @@ void RealSenseNodeFactory::StartDevice()
 
 	ROS_ERROR("initialized = true");
 	_initialized = true;
+
+	_data_timeout = privateNh.param("data_timeout", 0.0);
+	if (_data_timeout > 0.0)
+	{
+		_data_monitor_timer = nh.createTimer(ros::Duration(_data_timeout), &RealSenseNodeFactory::dataMonitor, this, false);
+	}
 }
 
 bool RealSenseNodeFactory::shutdown()
 {
 	ROS_ERROR("shutdown()");
 	_initialized = false;
+
+	_data_monitor_timer.stop();
 
 	//std::function<void(rs2::event_information&)> change_device_callback_function = [this](rs2::event_information& info){ignore_change_device_callback(info);};
 	//_ctx.set_devices_changed_callback(change_device_callback_function);
@@ -314,6 +384,8 @@ bool RealSenseNodeFactory::reset()
 
 	_initialized = false;
 
+	_data_monitor_timer.stop();
+
 	//std::function<void(rs2::event_information&)> change_device_callback_function = [this](rs2::event_information& info){ignore_change_device_callback(info);};
 	//_ctx.set_devices_changed_callback(change_device_callback_function);
 
@@ -325,11 +397,14 @@ bool RealSenseNodeFactory::reset()
 		ROS_ERROR("reset() _query_thread.joined()");
 	}
 	_realSenseNode.reset();
+	ROS_ERROR("reset() checking device");
 	if (_device)
 	{
+		ROS_ERROR("reset() _device.hardware_reset()");
 		_device.hardware_reset();
 		_device = rs2::device();
 	}
+	ROS_ERROR("reset() init timer");
 
 	_init_timer = getNodeHandle().createWallTimer(ros::WallDuration(1.0), &RealSenseNodeFactory::initialize, this, true);
 	return true;
