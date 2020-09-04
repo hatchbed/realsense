@@ -796,6 +796,7 @@ void BaseRealSenseNode::updateMonitoredTopic(const stream_index_pair& stream, To
 
 bool BaseRealSenseNode::checkTopics(const ros::Time& timeout, std::vector<std::string>& stale_topics)
 {
+    ROS_ERROR("Checking topics ...");
     bool ok = true;
     const std::lock_guard<std::mutex> lock(_topic_monitor_mutex);
     for (const auto& stream: _topics)
@@ -806,6 +807,15 @@ bool BaseRealSenseNode::checkTopics(const ros::Time& timeout, std::vector<std::s
             {
                 ok = false;
                 stale_topics.push_back(topic.second.name + ": " + topic.second.resolved_name);
+                ROS_ERROR("  topic %s: %s is stale", topic.second.name, topic.second.resolved_name);
+            }
+            else if (topic.second.last_published == ros::TIME_MIN)
+            {
+                ROS_ERROR("  ignoring unpublished topic %s: %s", topic.second.name, topic.second.resolved_name);
+            }
+            else
+            {
+                ROS_ERROR("  GOOD topic %s: %s", topic.second.name, topic.second.resolved_name);
             }
         }
     }
