@@ -2180,6 +2180,12 @@ void BaseRealSenseNode::publishFrame(rs2::frame f, const ros::Time& t,
     }
 
     ++(seq[stream]);
+
+    if (seq[stream] > 3000)
+    {
+        return;
+    }
+
     auto& image_publisher = image_publishers.at(stream);
     auto& info_publisher = info_publishers.at(stream);
     if(0 != info_publisher.getNumSubscribers() ||
