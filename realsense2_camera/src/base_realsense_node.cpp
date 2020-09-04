@@ -807,15 +807,15 @@ bool BaseRealSenseNode::checkTopics(const ros::Time& timeout, std::vector<std::s
             {
                 ok = false;
                 stale_topics.push_back(topic.second.name + ": " + topic.second.resolved_name);
-                ROS_ERROR("  topic %s: %s is stale", topic.second.name, topic.second.resolved_name);
+                ROS_ERROR("  topic %s: %s is stale", topic.second.name.c_str(), topic.second.resolved_name.c_str());
             }
             else if (topic.second.last_published == ros::TIME_MIN)
             {
-                ROS_ERROR("  ignoring unpublished topic %s: %s", topic.second.name, topic.second.resolved_name);
+                ROS_ERROR("  ignoring unpublished topic %s: %s", topic.second.name.c_str(), topic.second.resolved_name.c_str());
             }
             else
             {
-                ROS_ERROR("  GOOD topic %s: %s", topic.second.name, topic.second.resolved_name);
+                ROS_ERROR("  GOOD topic %s: %s", topic.second.name.c_str(), topic.second.resolved_name.c_str());
             }
         }
     }
