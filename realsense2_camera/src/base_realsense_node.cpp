@@ -753,28 +753,24 @@ void BaseRealSenseNode::setupPublishers()
         _enable[DEPTH])
     {
         _depth_to_other_extrinsics_publishers[FISHEYE] = _node_handle.advertise<Extrinsics>("extrinsics/depth_to_fisheye", 1, true);
-        addMonitoredTopic(FISHEYE, TOPIC_EXTRINSICS, "extrinsics/depth_to_fisheye");
     }
 
     if (_enable[COLOR] &&
         _enable[DEPTH])
     {
         _depth_to_other_extrinsics_publishers[COLOR] = _node_handle.advertise<Extrinsics>("extrinsics/depth_to_color", 1, true);
-        addMonitoredTopic(COLOR, TOPIC_EXTRINSICS, "extrinsics/depth_to_color");
     }
 
     if (_enable[INFRA1] &&
         _enable[DEPTH])
     {
         _depth_to_other_extrinsics_publishers[INFRA1] = _node_handle.advertise<Extrinsics>("extrinsics/depth_to_infra1", 1, true);
-        addMonitoredTopic(INFRA1, TOPIC_EXTRINSICS, "extrinsics/depth_to_infra1");
     }
 
     if (_enable[INFRA2] &&
         _enable[DEPTH])
     {
         _depth_to_other_extrinsics_publishers[INFRA2] = _node_handle.advertise<Extrinsics>("extrinsics/depth_to_infra2", 1, true);
-        addMonitoredTopic(INFRA2, TOPIC_EXTRINSICS, "extrinsics/depth_to_infra2");
     }
 }
 
@@ -1910,7 +1906,6 @@ void BaseRealSenseNode::publishStaticTransforms()
 
         _depth_to_other_extrinsics[FISHEYE] = ex;
         _depth_to_other_extrinsics_publishers[FISHEYE].publish(rsExtrinsicsToMsg(ex, frame_id));
-        updateMonitoredTopic(FISHEYE, TOPIC_EXTRINSICS);
     }
 
     if (_enable[DEPTH] &&
@@ -1920,7 +1915,6 @@ void BaseRealSenseNode::publishStaticTransforms()
         const auto& ex = base_profile.get_extrinsics_to(getAProfile(COLOR));
         _depth_to_other_extrinsics[COLOR] = ex;
         _depth_to_other_extrinsics_publishers[COLOR].publish(rsExtrinsicsToMsg(ex, frame_id));
-        updateMonitoredTopic(COLOR, TOPIC_EXTRINSICS);
     }
 
     if (_enable[DEPTH] &&
@@ -1930,7 +1924,6 @@ void BaseRealSenseNode::publishStaticTransforms()
         const auto& ex = base_profile.get_extrinsics_to(getAProfile(INFRA1));
         _depth_to_other_extrinsics[INFRA1] = ex;
         _depth_to_other_extrinsics_publishers[INFRA1].publish(rsExtrinsicsToMsg(ex, frame_id));
-        updateMonitoredTopic(INFRA1, TOPIC_EXTRINSICS);
     }
 
     if (_enable[DEPTH] &&
@@ -1940,9 +1933,7 @@ void BaseRealSenseNode::publishStaticTransforms()
         const auto& ex = base_profile.get_extrinsics_to(getAProfile(INFRA2));
         _depth_to_other_extrinsics[INFRA2] = ex;
         _depth_to_other_extrinsics_publishers[INFRA2].publish(rsExtrinsicsToMsg(ex, frame_id));
-        updateMonitoredTopic(INFRA2, TOPIC_EXTRINSICS);
     }
-
 }
 
 void reverse_memcpy(unsigned char* dst, const unsigned char* src, size_t n)

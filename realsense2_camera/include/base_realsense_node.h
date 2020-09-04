@@ -290,7 +290,7 @@ namespace realsense2_camera
         std::map<stream_index_pair, rs2_extrinsics> _depth_to_other_extrinsics;
 
         // Topic monitoring
-        enum Topic { TOPIC_IMAGE, TOPIC_INFO, TOPIC_ALIGNED_IMAGE, TOPIC_ALIGNED_INFO, TOPIC_IMU, TOPIC_EXTRINSICS, TOPIC_POINTS, TOPIC_ODOM};
+        enum Topic { TOPIC_IMAGE, TOPIC_INFO, TOPIC_ALIGNED_IMAGE, TOPIC_ALIGNED_INFO, TOPIC_IMU, TOPIC_POINTS, TOPIC_ODOM};
         struct TopicInfo
         {
             std::string name;
