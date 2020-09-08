@@ -331,6 +331,7 @@ void RealSenseNodeFactory::StartDevice()
 	{
 		ROS_INFO("not monitoring data.");
 	}
+  }
 	catch (const rs2::error& e)
 	{
 		ROS_ERROR_STREAM("Exception: " << e.what());
