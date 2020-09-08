@@ -42,6 +42,8 @@ RealSenseNodeFactory::RealSenseNodeFactory() :
 
 RealSenseNodeFactory::~RealSenseNodeFactory()
 {
+	try
+	{
 	_initialized = false;
 	_data_monitor_timer.stop();
 	_is_alive = false;
@@ -56,6 +58,11 @@ RealSenseNodeFactory::~RealSenseNodeFactory()
 		_device.hardware_reset();
 		_device = rs2::device();
 	}
+  }
+  catch (const rs2::error& e)
+  {
+      ROS_ERROR_STREAM("Exception: " << e.what());
+  }
 }
 
 rs2::device RealSenseNodeFactory::getDevice()

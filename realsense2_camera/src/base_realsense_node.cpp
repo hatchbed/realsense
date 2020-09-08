@@ -1284,6 +1284,8 @@ void BaseRealSenseNode::imu_callback_sync(rs2::frame frame, imu_sync_method sync
 
 void BaseRealSenseNode::imu_callback(rs2::frame frame)
 {
+    try
+    {
     auto stream = frame.get_profile().stream_type();
     double frame_time = frame.get_timestamp();
     bool placeholder_false(false);
@@ -1339,10 +1341,17 @@ void BaseRealSenseNode::imu_callback(rs2::frame frame)
     {
         clearMonitoredTopic(stream_index, TOPIC_IMU);
     }
+    }
+    catch (const rs2::error& e)
+    {
+        ROS_ERROR_STREAM("Exception: " << e.what());
+    }
 }
 
 void BaseRealSenseNode::pose_callback(rs2::frame frame)
 {
+    try
+    {
     double frame_time = frame.get_timestamp();
     bool placeholder_false(false);
     if (_is_initialized_time_base.compare_exchange_strong(placeholder_false, true) )
@@ -1436,6 +1445,11 @@ void BaseRealSenseNode::pose_callback(rs2::frame frame)
     else
     {
         clearMonitoredTopic(stream_index, TOPIC_ODOM);
+    }
+    }
+    catch (const rs2::error& e)
+    {
+        ROS_ERROR_STREAM("Exception: " << e.what());
     }
 }
 
@@ -1627,6 +1641,8 @@ void BaseRealSenseNode::frame_callback(rs2::frame frame)
 
 void BaseRealSenseNode::multiple_message_callback(rs2::frame frame, imu_sync_method sync_method)
 {
+    try
+    {
     auto stream = frame.get_profile().stream_type();
     switch (stream)
     {
@@ -1640,6 +1656,11 @@ void BaseRealSenseNode::multiple_message_callback(rs2::frame frame, imu_sync_met
             break;
         default:
             frame_callback(frame);
+    }
+    }
+    catch (const rs2::error& e)
+    {
+        ROS_ERROR_STREAM("Exception: " << e.what());
     }
 }
 
@@ -1929,6 +1950,8 @@ void reverse_memcpy(unsigned char* dst, const unsigned char* src, size_t n)
 
 void BaseRealSenseNode::publishPointCloud(rs2::points pc, const ros::Time& t, const rs2::frameset& frameset)
 {
+    try
+    {
     std::vector<NamedFilter>::iterator pc_filter = find_if(_filters.begin(), _filters.end(), [] (NamedFilter s) { return s._name == "pointcloud"; } );
     rs2_stream texture_source_id = static_cast<rs2_stream>(pc_filter->_filter->get_option(rs2_option::RS2_OPTION_STREAM_FILTER));
     bool use_texture = texture_source_id != RS2_STREAM_ANY;
@@ -2064,6 +2087,11 @@ void BaseRealSenseNode::publishPointCloud(rs2::points pc, const ros::Time& t, co
         }
     }
     _pointcloud_publisher.publish(msg_pointcloud);
+    }
+    catch (const rs2::error& e)
+    {
+        ROS_ERROR_STREAM("Exception: " << e.what());
+    }
 }
 
 
@@ -2139,6 +2167,8 @@ void BaseRealSenseNode::publishFrame(rs2::frame f, const ros::Time& t,
                                      bool copy_data_from_frame,
                                      bool aligned)
 {
+    try
+    {
     ROS_DEBUG("publishFrame(...)");
     unsigned int width = 0;
     unsigned int height = 0;
@@ -2215,6 +2245,11 @@ void BaseRealSenseNode::publishFrame(rs2::frame f, const ros::Time& t,
             clearMonitoredTopic(stream, TOPIC_INFO);
             clearMonitoredTopic(stream, TOPIC_IMAGE);
         }
+    }
+    }
+    catch (const rs2::error& e)
+    {
+        ROS_ERROR_STREAM("Exception: " << e.what());
     }
 }
 
