@@ -44,19 +44,20 @@ RealSenseNodeFactory::~RealSenseNodeFactory()
 {
 	try
 	{
-	_initialized = false;
-	_data_monitor_timer.stop();
-	_is_alive = false;
-	if (_query_thread.joinable())
-	{
-		_query_thread.join();
-	}
+		_initialized = false;
+		_data_monitor_timer.stop();
+		_is_alive = false;
+		if (_query_thread.joinable())
+		{
+			_query_thread.join();
+		}
 
-	_realSenseNode.reset();
-	if (_device)
-	{
-		_device.hardware_reset();
-		_device = rs2::device();
+		_realSenseNode.reset();
+		if (_device)
+		{
+			_device.hardware_reset();
+			_device = rs2::device();
+		}
 	}
   }
   catch (const rs2::error& e)
@@ -119,6 +120,9 @@ void RealSenseNodeFactory::change_device_callback(rs2::event_information& info)
 void RealSenseNodeFactory::onInit()
 {
 	auto nh = getNodeHandle();
+	auto privateNh = getPrivateNodeHandle();
+	
+	privateNh.param("initial_reset", _initial_reset, false);
 	_init_timer = nh.createWallTimer(ros::WallDuration(1.0), &RealSenseNodeFactory::initialize, this, true);
 }
 
@@ -172,8 +176,6 @@ void RealSenseNodeFactory::initialize(const ros::WallTimerEvent &ignored)
 		}
 		else
 		{
-			privateNh.param("initial_reset", _initial_reset, false);
-
 			_is_alive = true;
 			_query_thread = std::thread([=]()
 						{
@@ -369,12 +371,20 @@ bool RealSenseNodeFactory::reset()
 	{
 		_query_thread.join();
 	}
-	_realSenseNode.reset();
-	if (_device)
+
+	try
 	{
-		_device.hardware_reset();
-		_device = rs2::device();
+	_realSenseNode.reset();
+		if (_device)
+		{
+			_device.hardware_reset();
+			_device = rs2::device();
+		}
 	}
+  catch (const rs2::error& e)
+  {
+      ROS_ERROR_STREAM("Exception: " << e.what());
+  }
 
 	_init_timer = getNodeHandle().createWallTimer(ros::WallDuration(1.0), &RealSenseNodeFactory::initialize, this, true);
 	return true;
