@@ -182,7 +182,16 @@ void RealSenseNodeFactory::initialize(const ros::WallTimerEvent &ignored)
 			_is_alive = true;
 			_query_thread = std::thread([=]()
 						{
-							ROS_DEBUG("Waiting for device...");
+							ROS_DEBUG("Waiting for device...  (is_alive = %d)", (int)_is_alive);
+							if (_device)
+							{
+								ROS_DEBUG("device exists already for some reason!");
+							}
+							else
+							{
+								ROS_DEBUG("no device yet.");
+							}
+ 
 							std::chrono::milliseconds timespan(6000);
 							while (_is_alive && !_device)
 							{
@@ -212,6 +221,7 @@ void RealSenseNodeFactory::initialize(const ros::WallTimerEvent &ignored)
 									std::this_thread::sleep_for(timespan);
 								}
 							}
+							ROS_DEBUG("done waiting for device");
 						});
 
 			if (!_shutdown_srv)
