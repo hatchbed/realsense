@@ -59,11 +59,10 @@ RealSenseNodeFactory::~RealSenseNodeFactory()
 			_device = rs2::device();
 		}
 	}
-  }
-  catch (const rs2::error& e)
-  {
-      ROS_ERROR_STREAM("Exception: " << e.what());
-  }
+	catch (const rs2::error& e)
+	{
+		ROS_ERROR_STREAM("Exception: " << e.what());
+	}
 }
 
 rs2::device RealSenseNodeFactory::getDevice()
@@ -381,10 +380,10 @@ bool RealSenseNodeFactory::reset()
 			_device = rs2::device();
 		}
 	}
-  catch (const rs2::error& e)
-  {
-      ROS_ERROR_STREAM("Exception: " << e.what());
-  }
+	catch (const rs2::error& e)
+	{
+		ROS_ERROR_STREAM("Exception: " << e.what());
+	}
 
 	_init_timer = getNodeHandle().createWallTimer(ros::WallDuration(1.0), &RealSenseNodeFactory::initialize, this, true);
 	return true;
