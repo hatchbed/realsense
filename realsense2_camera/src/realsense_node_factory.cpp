@@ -118,6 +118,9 @@ void RealSenseNodeFactory::change_device_callback(rs2::event_information& info)
 
 void RealSenseNodeFactory::onInit()
 {
+	ROS_ERROR("inInit()");
+	sleep(1);
+	ROS_ERROR("inInit()");
 	auto nh = getNodeHandle();
 	auto privateNh = getPrivateNodeHandle();
 	
@@ -127,6 +130,7 @@ void RealSenseNodeFactory::onInit()
 
 void RealSenseNodeFactory::initialize(const ros::WallTimerEvent &ignored)
 {
+	ROS_ERROR("initialize()");
 	try
 	{
 #ifdef BPDEBUG
@@ -278,6 +282,8 @@ void RealSenseNodeFactory::dataMonitor(const ros::TimerEvent &e)
 
 void RealSenseNodeFactory::StartDevice()
 {
+	try
+	{
 	ros::NodeHandle nh = getNodeHandle();
 	ros::NodeHandle privateNh = getPrivateNodeHandle();
 	// TODO
@@ -324,6 +330,10 @@ void RealSenseNodeFactory::StartDevice()
 	else
 	{
 		ROS_INFO("not monitoring data.");
+	}
+	catch (const rs2::error& e)
+	{
+		ROS_ERROR_STREAM("Exception: " << e.what());
 	}
 }
 
