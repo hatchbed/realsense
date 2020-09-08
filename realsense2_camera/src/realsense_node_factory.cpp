@@ -116,19 +116,15 @@ void RealSenseNodeFactory::change_device_callback(rs2::event_information& info)
 
 void RealSenseNodeFactory::onInit()
 {
-	ROS_ERROR("inInit()");
-	sleep(1);
-	ROS_ERROR("inInit()");
 	auto nh = getNodeHandle();
 	auto privateNh = getPrivateNodeHandle();
-	
+
 	privateNh.param("initial_reset", _initial_reset, false);
 	_init_timer = nh.createWallTimer(ros::WallDuration(1.0), &RealSenseNodeFactory::initialize, this, true);
 }
 
 void RealSenseNodeFactory::initialize(const ros::WallTimerEvent &ignored)
 {
-	ROS_ERROR("initialize()");
 	_device = rs2::device();
 	try
 	{
@@ -181,15 +177,8 @@ void RealSenseNodeFactory::initialize(const ros::WallTimerEvent &ignored)
 			_is_alive = true;
 			_query_thread = std::thread([=]()
 						{
-							ROS_DEBUG("Waiting for device...  (is_alive = %d)", (int)_is_alive);
-							if (_device)
-							{
-								ROS_DEBUG("device exists already for some reason!");
-							}
-							else
-							{
-								ROS_DEBUG("no device yet.");
-							}
+							ROS_DEBUG("Waiting for device...");
+
  
 							std::chrono::milliseconds timespan(6000);
 							while (_is_alive && !_device)
@@ -220,7 +209,6 @@ void RealSenseNodeFactory::initialize(const ros::WallTimerEvent &ignored)
 									std::this_thread::sleep_for(timespan);
 								}
 							}
-							ROS_DEBUG("done waiting for device");
 						});
 
 			if (!_shutdown_srv)
