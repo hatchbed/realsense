@@ -23,8 +23,6 @@ constexpr auto realsense_ros_camera_version = REALSENSE_ROS_EMBEDDED_VERSION_STR
 
 PLUGINLIB_EXPORT_CLASS(realsense2_camera::RealSenseNodeFactory, nodelet::Nodelet)
 
-rs2::device _device;
-
 RealSenseNodeFactory::RealSenseNodeFactory() :
 	_is_alive(true),
 	_initialized(false)
@@ -131,6 +129,7 @@ void RealSenseNodeFactory::onInit()
 void RealSenseNodeFactory::initialize(const ros::WallTimerEvent &ignored)
 {
 	ROS_ERROR("initialize()");
+	_device = rs2::device();
 	try
 	{
 #ifdef BPDEBUG

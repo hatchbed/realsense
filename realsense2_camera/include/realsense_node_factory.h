@@ -71,6 +71,8 @@ namespace realsense2_camera
         bool handleReset(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response);
         void dataMonitor(const ros::TimerEvent &e);
 
+        rs2::device _device;
+
         std::shared_ptr<InterfaceRealSenseNode> _realSenseNode;
         rs2::context _ctx;
         std::string _serial_no;
