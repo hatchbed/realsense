@@ -110,8 +110,8 @@ void RealSenseNodeFactory::change_device_callback(rs2::event_information& info)
 		if (info.was_removed(_device))
 		{
 			ROS_ERROR("The device has been disconnected!");
-			ROS_ERROR("Resetting ...");
-			reset();
+			ROS_ERROR("Shutting down ...");
+			shutdown();
 		}
 	}
 }
